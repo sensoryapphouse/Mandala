@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Mandala</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+    <meta name="viewport" content="user-scalable=0">
+    <link href="css/index.css" rel="stylesheet" />
+    <link rel="apple-touch-icon" href="touch-icon-iphone.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="touch-icon-ipad.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="touch-icon-iphone-retina.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="touch-icon-ipad-retina.png">
+    <script src="gamepads.js"></script>
+    <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+    <script type="text/javascript" src="webgl-utils.js"></script>
+    <script type="text/javascript" src="canvas2image.js"></script>
+    <script type="text/javascript" src="tinycolor.js"></script>
+    <script type="text/javascript" src="js/jscolor.js"></script>
+    <script type="text/javascript" src="main.js"></script>
+    <script id="shader-1-fs" type="f">
+        precision mediump float;
+    varying vec2 vTextureCoord;
+    uniform sampler2D texture0;
+//    uniform sampler2D uSampler;
+    uniform vec2 resolution;
+    uniform vec2 mouse;
+    uniform vec2 mouse1;
+    uniform int index;
+    uniform float time;
+    uniform float Param1;
+    uniform float Param2;
+    uniform float Param3;
+    float s;
+
+
+vec3 rgb2hsv(vec3 c)
+{
+  vec4 K = vec4(0., -1. / 3., 2. / 3., -1.);
+  vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+  vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+
+  float d = q.x - min(q.w, q.y);
+  float e = 1.0e-10;
+  return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+vec3 hsv2rgb(vec3 c)
+{
+  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+  return c.z * mix(K.xxx, clamp(p - K.xxx, 0., 1.), c.y);
+}
+
+void main( void ) {
+  mediump vec2 xy = gl_FragCoord.xy / 1000.;
+	if (Param1 > 0.0)	{
+   	    xy.x += sin(xy.y*15.0+time)/100.0; // wiggle vertically
+		xy.y += cos(xy.x*15.0+time)/100.0; // and horizontal
+	}
+ 	float glow = 2.;
+  vec4 tx = texture2D(texture0, xy);
+ 	if (Param1 > 1.0) {
+ 		if (Param1 < 4.0)	{ // ripple screen
+  	 	lowp vec2 cPos = -0.8 + 2.0 * xy;
+  		lowp float cLength = length(cPos);
+  		mediump float tmp = cos(cLength*12.0-time);
+  		lowp float i2 = clamp(tmp/4. + 1.75,0.0,1.0);
+   		if (Param1 == 3.0)
+  			xy += (cPos/cLength)*tmp*0.03;
+  		else // Param 1 == 2
+  			xy += (cPos/cLength)*tmp*0.01;
+  		lowp vec3 col = texture2D(texture0,xy).xyz * vec3(i2);
+  		tx = vec4(col,1.0);
+   	}
+   	else { // Param1 == 4 swirl around finger
+      lowp vec2 cent = vec2(mouse.x, mouse.y);
+      lowp float radius = 0.3;
+      lowp float angle = 0.2;
+      lowp float dist = distance(cent, xy);
+      if (dist < radius) {
+          xy -= cent;
+          lowp float percent = (radius - dist) / radius;
+          lowp float theta = percent * percent * angle * 5.0;
+          lowp float s = sin(theta);
+          lowp float c = cos(theta);
+          xy = vec2(dot(xy, vec2(c, -s)), dot(xy, vec2(s, c))) + cent;
+          tx = texture2D(texture0, xy);
+      }
+    }
+  }
+// animates drawing *16 or *32
+// 	if (length(tx.xy) > 0.1)
+// 		tx = mod(floor(mod(tx + time*.05, 1.)*16.),2.);
+
+  // cycle through colours
+  if (Param3 > 0.) {
+    if (Param3 == 1.) {
+    	if (length(tx.xyz) > 0.2) {
+          vec3 color = vec3(0.0, 0.0, 0.0);
+      	  color = rgb2hsv(color);
+      	  color.x = mod(((tx.x + tx.y + tx.z) * 0.7) + (time*0.05), 1.0);
+      	  color.y = 1.0;
+      	  color.z = 1.0;
+    	  tx.xyz = hsv2rgb(color);
+    	}
+    }
+    else {
+    	if (length(tx.xy) > 0.2)
+		    tx = mod(floor(mod(tx + time*.15, 1.)*16.),1.1);
+    }
+  } 
+// change background colour/texture
+	if (Param2 > 0.)	{
+		vec2 PixelPos = gl_FragCoord.xy/1000.;
+		lowp vec3 Color = vec3(PixelPos.y,1.0-PixelPos.x,PixelPos.x-PixelPos.y);
+		float dist = sqrt(pow(PixelPos.x,2.0)+pow(PixelPos.y,2.0))/2.;
+		mediump float tmp = 1.2+sin(time/11.0);
+		if (Param2 == 1.)
+  		    Color = vec3((Color.x-dist)*(1.0+sin(time/11.0)),(Color.y-dist)*(1.0+cos(time/8.)),(Color.z-dist)*(1.0+sin(-time/7.)))/2.;
+        else
+  		    Color = vec3((Color.x-dist)*tmp,(Color.y-dist)*(1.0-tmp),(Color.z-dist)*tmp*(1.0-tmp))/2.;
+		tx.xyz = tx.xyz + Color;
+	}
+gl_FragColor = vec4(tx.xyz, 1.0);;
+}
+
+</script>
+
+    <script id="shader-vs" type="v">
+        attribute vec3 aVertexPosition;
+    attribute vec2 aTextureCoord;
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+
+    varying vec2 vTextureCoord;
+
+    void main(void) {
+        gl_Position = vec4(aVertexPosition, 1.0);
+        vTextureCoord = aTextureCoord;
+    }
+</script>
+
+</head>
+
+<body>
+    <div id="container">
+        <splash class="img" enabled></splash>
+        <palette class="img" enabled></palette>
+        <toolbar class="img" enabled></toolbar>
+        <toolbar2 class="img" hidden enabled></toolbar2>
+        <fun1 class="btn" enabled></fun1>
+        <fun2 class="btn" hidden enabled></fun2>
+        <fun3 class="btn" hidden enabled></fun3>
+        <canvas id="analyser" width="1000" height="1000" hidden></canvas>
+        <canvas id="webgl-canvas" hidden style="border: none;" width="1000" height="1000"></canvas>
+        <input class="color" id="myColor"></input>
+        <crosshairs class="btn" hidden enabled></crosshairs>
+    </div>
+</body>
+
+</html>

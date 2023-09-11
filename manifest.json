@@ -1,0 +1,43 @@
+{
+    "name": "Mandala",
+    "short_name": "Mandala",
+    "version": "0.1.2",
+    "manifest_version": 2,
+    "default_locale": "en",
+    "minimum_chrome_version": "28",
+    "description": "Fun mandala painting app",
+    "offline_enabled": true,
+    "app": {
+        "background": {
+            "scripts": ["background.js"]
+        }
+    },
+    "icons": [{
+        "src": "images/Mandala128.png",
+        "sizes": "128x128",
+        "type": "image/png"
+    }, {
+        "src": "images/Mandala144.png",
+        "sizes": "144x144",
+        "type": "image/png"
+    }, {
+        "src": "images/Mandala152.png",
+        "sizes": "152x152",
+        "type": "image/png"
+    }, {
+        "src": "images/Mandala192.png",
+        "sizes": "192x192",
+        "type": "image/png"
+    }, {
+        "src": "images/Mandala256.png",
+        "sizes": "256x256",
+        "type": "image/png"
+    }, {
+        "src": "images/Mandala512.png",
+        "sizes": "512x512",
+        "type": "image/png"
+    }],
+    "lang": "en-US",
+    "start_url": "./index.html",
+    "display": "standalone"
+}
